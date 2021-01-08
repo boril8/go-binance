@@ -1,4 +1,4 @@
-package binance
+package delivery
 
 import (
 	"bytes"
@@ -6,10 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -70,7 +67,7 @@ func (s *baseTestSuite) assertURLValuesEqual(e, a url.Values) {
 			r.NotEmpty(a.Get(k))
 			continue
 		}
-		r.Equal(e[k], a[k], k)
+		r.Equal(e.Get(k), a.Get(k), k)
 	}
 }
 
@@ -144,25 +141,4 @@ func (m *mockedClient) do(req *http.Request) (*http.Response, error) {
 	}
 	args := m.Called(req)
 	return args.Get(0).(*http.Response), args.Error(1)
-}
-
-func (s *baseTestSuite) assertTradeV3Equal(e, a *TradeV3) {
-	r := s.r()
-	r.Equal(e.ID, a.ID, "ID")
-	r.Equal(e.Symbol, a.Symbol, "Symbol")
-	r.Equal(e.OrderID, a.OrderID, "OrderID")
-	r.Equal(e.Price, a.Price, "Price")
-	r.Equal(e.Quantity, a.Quantity, "Quantity")
-	r.Equal(e.QuoteQuantity, a.QuoteQuantity, "QuoteQuantity")
-	r.Equal(e.Commission, a.Commission, "Commission")
-	r.Equal(e.CommissionAsset, a.CommissionAsset, "CommissionAsset")
-	r.Equal(e.Time, a.Time, "Time")
-	r.Equal(e.IsBuyer, a.IsBuyer, "IsBuyer")
-	r.Equal(e.IsMaker, a.IsMaker, "IsMaker")
-	r.Equal(e.IsBestMatch, a.IsBestMatch, "IsBestMatch")
-}
-
-func TestFormatTimestamp(t *testing.T) {
-	tm, _ := time.Parse("2006-01-02 15:04:05", "2018-06-01 01:01:01")
-	assert.Equal(t, int64(1527814861000), FormatTimestamp(tm))
 }

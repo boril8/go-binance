@@ -1,4 +1,4 @@
-package futures
+package delivery
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type ExchangeInfoService struct {
 func (s *ExchangeInfoService) Do(ctx context.Context, opts ...RequestOption) (res *ExchangeInfo, err error) {
 	r := &request{
 		method:   "GET",
-		endpoint: "/fapi/v1/exchangeInfo",
+		endpoint: "/dapi/v1/exchangeInfo",
 		secType:  secTypeNone,
 	}
 	data, err := s.c.callAPI(ctx, r, opts...)
@@ -49,28 +49,29 @@ type RateLimit struct {
 
 // Symbol market symbol
 type Symbol struct {
-	Symbol                string                   `json:"symbol"`
-	Pair                  string                   `json:"pair"`
-	ContractType          ContractType             `json:"contractType"`
-	DeliveryDate          int64                    `json:"deliveryDate"`
-	OnboardDate           int64                    `json:"onboardDate"`
-	Status                string                   `json:"status"`
-	MaintMarginPercent    string                   `json:"maintMarginPercent"`
-	RequiredMarginPercent string                   `json:"requiredMarginPercent"`
-	PricePrecision        int                      `json:"pricePrecision"`
-	QuantityPrecision     int                      `json:"quantityPrecision"`
-	BaseAssetPrecision    int                      `json:"baseAssetPrecision"`
-	QuotePrecision        int                      `json:"quotePrecision"`
-	UnderlyingType        string                   `json:"underlyingType"`
-	UnderlyingSubType     []string                 `json:"underlyingSubType"`
-	SettlePlan            int                      `json:"settlePlan"`
-	TriggerProtect        string                   `json:"triggerProtect"`
 	OrderType             []OrderType              `json:"OrderType"`
 	TimeInForce           []TimeInForceType        `json:"timeInForce"`
 	Filters               []map[string]interface{} `json:"filters"`
+	Symbol                string                   `json:"symbol"`
+	Pair                  string                   `json:"pair"`
+	ContractType          string                   `json:"contractType"`
+	DeliveryDate          int64                    `json:"deliveryDate"`
+	OnboardDate           int64                    `json:"onboardDate"`
+	ContractStatus        string                   `json:"contractStatus"`
+	ContractSize          int                      `json:"contractSize"`
+	PricePrecision        int                      `json:"pricePrecision"`
+	QuantityPrecision     int                      `json:"quantityPrecision"`
+	MaintMarginPercent    string                   `json:"maintMarginPercent"`
+	RequiredMarginPercent string                   `json:"requiredMarginPercent"`
 	QuoteAsset            string                   `json:"quoteAsset"`
-	MarginAsset           string                   `json:"marginAsset"`
 	BaseAsset             string                   `json:"baseAsset"`
+	MarginAsset           string                   `json:"marginAsset"`
+	BaseAssetPrecision    int                      `json:"baseAssetPrecision"`
+	QuotePrecision        int                      `json:"quotePrecision"`
+	EqualQtyPrecision     int                      `json:"equalQtyPrecision"`
+	TriggerProtect        string                   `json:"triggerProtect"`
+	UnderlyingType        string                   `json:"underlyingType"`
+	UnderlyingSubType     []interface{}            `json:"underlyingSubType"`
 }
 
 // LotSizeFilter define lot size filter of symbol
@@ -103,11 +104,6 @@ type MarketLotSizeFilter struct {
 
 // MaxNumOrdersFilter define max num orders filter of symbol
 type MaxNumOrdersFilter struct {
-	Limit int64 `json:"limit"`
-}
-
-// MaxNumAlgoOrdersFilter define max num algo orders filter of symbol
-type MaxNumAlgoOrdersFilter struct {
 	Limit int64 `json:"limit"`
 }
 
@@ -196,20 +192,6 @@ func (s *Symbol) MaxNumOrdersFilter() *MaxNumOrdersFilter {
 	for _, filter := range s.Filters {
 		if filter["filterType"].(string) == string(SymbolFilterTypeMaxNumOrders) {
 			f := &MaxNumOrdersFilter{}
-			if i, ok := filter["limit"]; ok {
-				f.Limit = int64(i.(float64))
-			}
-			return f
-		}
-	}
-	return nil
-}
-
-// MaxNumAlgoOrdersFilter return max num orders filter of symbol
-func (s *Symbol) MaxNumAlgoOrdersFilter() *MaxNumAlgoOrdersFilter {
-	for _, filter := range s.Filters {
-		if filter["filterType"].(string) == string(SymbolFilterTypeMaxNumAlgoOrders) {
-			f := &MaxNumAlgoOrdersFilter{}
 			if i, ok := filter["limit"]; ok {
 				f.Limit = int64(i.(float64))
 			}

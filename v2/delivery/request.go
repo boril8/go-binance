@@ -1,4 +1,4 @@
-package binance
+package delivery
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type secType int
 const (
 	secTypeNone secType = iota
 	secTypeAPIKey
-	secTypeSigned // if the 'timestamp' parameter is required
+	secTypeSigned
 )
 
 type params map[string]interface{}
@@ -28,15 +28,6 @@ type request struct {
 	header     http.Header
 	body       io.Reader
 	fullURL    string
-}
-
-// addParam add param with key/value to query string
-func (r *request) addParam(key string, value interface{}) *request {
-	if r.query == nil {
-		r.query = url.Values{}
-	}
-	r.query.Add(key, fmt.Sprintf("%v", value))
-	return r
 }
 
 // setParam set param with key/value to query string

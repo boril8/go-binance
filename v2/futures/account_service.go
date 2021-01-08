@@ -14,7 +14,7 @@ type GetBalanceService struct {
 func (s *GetBalanceService) Do(ctx context.Context, opts ...RequestOption) (res []*Balance, err error) {
 	r := &request{
 		method:   "GET",
-		endpoint: "/fapi/v1/balance",
+		endpoint: "/fapi/v2/balance",
 		secType:  secTypeSigned,
 	}
 	data, err := s.c.callAPI(ctx, r, opts...)
@@ -31,10 +31,13 @@ func (s *GetBalanceService) Do(ctx context.Context, opts ...RequestOption) (res 
 
 // Balance define user balance of your account
 type Balance struct {
-	AccountAlias      string `json:"accountAlias"`
-	Asset             string `json:"asset"`
-	Balance           string `json:"balance"`
-	WithdrawAvailable string `json:"withdrawAvailable"`
+	AccountAlias       string `json:"accountAlias"`
+	Asset              string `json:"asset"`
+	Balance            string `json:"balance"`
+	CrossWalletBalance string `json:"crossWalletBalance"`
+	CrossUnPnl         string `json:"crossUnPnl"`
+	AvailableBalance   string `json:"availableBalance"`
+	MaxWithdrawAmount  string `json:"maxWithdrawAmount"`
 }
 
 // GetAccountService get account info
@@ -95,12 +98,16 @@ type AccountAsset struct {
 
 // AccountPosition define account position
 type AccountPosition struct {
-	Isolated               bool   `json:"isolated"`
-	Leverage               string `json:"leverage"`
-	InitialMargin          string `json:"initialMargin"`
-	MaintMargin            string `json:"maintMargin"`
-	OpenOrderInitialMargin string `json:"openOrderInitialMargin"`
-	PositionInitialMargin  string `json:"positionInitialMargin"`
-	Symbol                 string `json:"symbol"`
-	UnrealizedProfit       string `json:"unrealizedProfit"`
+	Isolated               bool             `json:"isolated"`
+	Leverage               string           `json:"leverage"`
+	InitialMargin          string           `json:"initialMargin"`
+	MaintMargin            string           `json:"maintMargin"`
+	OpenOrderInitialMargin string           `json:"openOrderInitialMargin"`
+	PositionInitialMargin  string           `json:"positionInitialMargin"`
+	Symbol                 string           `json:"symbol"`
+	UnrealizedProfit       string           `json:"unrealizedProfit"`
+	EntryPrice             string           `json:"entryPrice"`
+	MaxNotional            string           `json:"maxNotional"`
+	PositionSide           PositionSideType `json:"positionSide"`
+	PositionAmt            string           `json:"positionAmt"`
 }

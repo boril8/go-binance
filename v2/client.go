@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/adshao/go-binance/v2/common"
+	"github.com/adshao/go-binance/v2/delivery"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/bitly/go-simplejson"
 )
@@ -169,6 +170,11 @@ func NewClient(apiKey, secretKey string) *Client {
 // NewFuturesClient initialize client for futures API
 func NewFuturesClient(apiKey, secretKey string) *futures.Client {
 	return futures.NewClient(apiKey, secretKey)
+}
+
+// NewDeliveryClient initialize client for coin-M futures API
+func NewDeliveryClient(apiKey, secretKey string) *delivery.Client {
+	return delivery.NewClient(apiKey, secretKey)
 }
 
 type doFunc func(req *http.Request) (*http.Response, error)
@@ -364,6 +370,11 @@ func (c *Client) NewCancelOrderService() *CancelOrderService {
 	return &CancelOrderService{c: c}
 }
 
+// NewCancelOpenOrdersService init cancel open orders service
+func (c *Client) NewCancelOpenOrdersService() *CancelOpenOrdersService {
+	return &CancelOpenOrdersService{c: c}
+}
+
 // NewListOpenOrdersService init list open orders service
 func (c *Client) NewListOpenOrdersService() *ListOpenOrdersService {
 	return &ListOpenOrdersService{c: c}
@@ -489,6 +500,11 @@ func (c *Client) NewGetMarginAccountService() *GetMarginAccountService {
 	return &GetMarginAccountService{c: c}
 }
 
+// NewGetIsolatedMarginAccountService init get isolated margin asset service
+func (c *Client) NewGetIsolatedMarginAccountService() *GetIsolatedMarginAccountService {
+	return &GetIsolatedMarginAccountService{c: c}
+}
+
 // NewGetMarginAssetService init get margin asset service
 func (c *Client) NewGetMarginAssetService() *GetMarginAssetService {
 	return &GetMarginAssetService{c: c}
@@ -557,4 +573,14 @@ func (c *Client) NewFuturesTransferService() *FuturesTransferService {
 // NewListFuturesTransferService init list futures transfer service
 func (c *Client) NewListFuturesTransferService() *ListFuturesTransferService {
 	return &ListFuturesTransferService{c: c}
+}
+
+// NewListDustLogService init list dust log service
+func (c *Client) NewListDustLogService() *ListDustLogService {
+	return &ListDustLogService{c: c}
+}
+
+// NewDustTransferService init dust transfer service
+func (c *Client) NewDustTransferService() *DustTransferService {
+	return &DustTransferService{c: c}
 }

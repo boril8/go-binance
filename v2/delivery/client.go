@@ -1,4 +1,4 @@
-package futures
+package delivery
 
 import (
 	"bytes"
@@ -7,15 +7,14 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/adshao/go-binance/v2/common"
+	"github.com/bitly/go-simplejson"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
-
-	"github.com/adshao/go-binance/v2/common"
-	"github.com/bitly/go-simplejson"
 )
 
 // SideType define side type of order
@@ -54,9 +53,6 @@ type WorkingType string
 // MarginType define margin type
 type MarginType string
 
-// ContractType define contract type
-type ContractType string
-
 // Global enums
 const (
 	SideTypeBuy  SideType = "BUY"
@@ -81,6 +77,7 @@ const (
 
 	NewOrderRespTypeACK    NewOrderRespType = "ACK"
 	NewOrderRespTypeRESULT NewOrderRespType = "RESULT"
+	NewOrderRespTypeFULL   NewOrderRespType = "FULL"
 
 	OrderStatusTypeNew             OrderStatusType = "NEW"
 	OrderStatusTypePartiallyFilled OrderStatusType = "PARTIALLY_FILLED"
@@ -102,12 +99,11 @@ const (
 	SymbolStatusTypeAuctionMatch SymbolStatusType = "AUCTION_MATCH"
 	SymbolStatusTypeBreak        SymbolStatusType = "BREAK"
 
-	SymbolFilterTypeLotSize          SymbolFilterType = "LOT_SIZE"
-	SymbolFilterTypePrice            SymbolFilterType = "PRICE_FILTER"
-	SymbolFilterTypePercentPrice     SymbolFilterType = "PERCENT_PRICE"
-	SymbolFilterTypeMarketLotSize    SymbolFilterType = "MARKET_LOT_SIZE"
-	SymbolFilterTypeMaxNumOrders     SymbolFilterType = "MAX_NUM_ORDERS"
-	SymbolFilterTypeMaxNumAlgoOrders SymbolFilterType = "MAX_NUM_ALGO_ORDERS"
+	SymbolFilterTypeLotSize       SymbolFilterType = "LOT_SIZE"
+	SymbolFilterTypePrice         SymbolFilterType = "PRICE_FILTER"
+	SymbolFilterTypePercentPrice  SymbolFilterType = "PERCENT_PRICE"
+	SymbolFilterTypeMarketLotSize SymbolFilterType = "MARKET_LOT_SIZE"
+	SymbolFilterTypeMaxNumOrders  SymbolFilterType = "MAX_NUM_ORDERS"
 
 	SideEffectTypeNoSideEffect SideEffectType = "NO_SIDE_EFFECT"
 	SideEffectTypeMarginBuy    SideEffectType = "MARGIN_BUY"
@@ -115,8 +111,6 @@ const (
 
 	MarginTypeIsolated MarginType = "ISOLATED"
 	MarginTypeCrossed  MarginType = "CROSSED"
-
-	ContractTypePerpetual ContractType = "PERPETUAL"
 
 	timestampKey  = "timestamp"
 	signatureKey  = "signature"
@@ -142,7 +136,7 @@ func NewClient(apiKey, secretKey string) *Client {
 	return &Client{
 		APIKey:     apiKey,
 		SecretKey:  secretKey,
-		BaseURL:    "https://fapi.binance.com",
+		BaseURL:    "https://dapi.binance.com",
 		UserAgent:  "Binance/golang",
 		HTTPClient: http.DefaultClient,
 		Logger:     log.New(os.Stderr, "Binance-golang ", log.LstdFlags),
@@ -287,39 +281,29 @@ func (c *Client) NewSetServerTimeService() *SetServerTimeService {
 	return &SetServerTimeService{c: c}
 }
 
-// NewDepthService init depth service
-func (c *Client) NewDepthService() *DepthService {
-	return &DepthService{c: c}
-}
-
-// NewAggTradesService init aggregate trades service
-func (c *Client) NewAggTradesService() *AggTradesService {
-	return &AggTradesService{c: c}
-}
-
-// NewRecentTradesService init recent trades service
-func (c *Client) NewRecentTradesService() *RecentTradesService {
-	return &RecentTradesService{c: c}
-}
-
 // NewKlinesService init klines service
 func (c *Client) NewKlinesService() *KlinesService {
 	return &KlinesService{c: c}
 }
 
-// NewListPriceChangeStatsService init list prices change stats service
-func (c *Client) NewListPriceChangeStatsService() *ListPriceChangeStatsService {
-	return &ListPriceChangeStatsService{c: c}
+// NewStartUserStreamService init starting user stream service
+func (c *Client) NewStartUserStreamService() *StartUserStreamService {
+	return &StartUserStreamService{c: c}
 }
 
-// NewListPricesService init listing prices service
-func (c *Client) NewListPricesService() *ListPricesService {
-	return &ListPricesService{c: c}
+// NewKeepaliveUserStreamService init keep alive user stream service
+func (c *Client) NewKeepaliveUserStreamService() *KeepaliveUserStreamService {
+	return &KeepaliveUserStreamService{c: c}
 }
 
-// NewListBookTickersService init listing booking tickers service
-func (c *Client) NewListBookTickersService() *ListBookTickersService {
-	return &ListBookTickersService{c: c}
+// NewCloseUserStreamService init closing user stream service
+func (c *Client) NewCloseUserStreamService() *CloseUserStreamService {
+	return &CloseUserStreamService{c: c}
+}
+
+// NewExchangeInfoService init exchange info service
+func (c *Client) NewExchangeInfoService() *ExchangeInfoService {
+	return &ExchangeInfoService{c: c}
 }
 
 // NewCreateOrderService init creating order service
@@ -352,102 +336,12 @@ func (c *Client) NewListOrdersService() *ListOrdersService {
 	return &ListOrdersService{c: c}
 }
 
-// NewGetAccountService init getting account service
-func (c *Client) NewGetAccountService() *GetAccountService {
-	return &GetAccountService{c: c}
-}
-
-// NewGetBalanceService init getting balance service
-func (c *Client) NewGetBalanceService() *GetBalanceService {
-	return &GetBalanceService{c: c}
-}
-
-// NewGetPositionRiskService init getting position risk service
-func (c *Client) NewGetPositionRiskService() *GetPositionRiskService {
-	return &GetPositionRiskService{c: c}
-}
-
-// NewGetPositionMarginHistoryService init getting position margin history service
-func (c *Client) NewGetPositionMarginHistoryService() *GetPositionMarginHistoryService {
-	return &GetPositionMarginHistoryService{c: c}
-}
-
-// NewGetIncomeHistoryService init getting income history service
-func (c *Client) NewGetIncomeHistoryService() *GetIncomeHistoryService {
-	return &GetIncomeHistoryService{c: c}
-}
-
-// NewHistoricalTradesService init listing trades service
-func (c *Client) NewHistoricalTradesService() *HistoricalTradesService {
-	return &HistoricalTradesService{c: c}
-}
-
-// NewListAccountTradeService init account trade list service
-func (c *Client) NewListAccountTradeService() *ListAccountTradeService {
-	return &ListAccountTradeService{c: c}
-}
-
-// NewStartUserStreamService init starting user stream service
-func (c *Client) NewStartUserStreamService() *StartUserStreamService {
-	return &StartUserStreamService{c: c}
-}
-
-// NewKeepaliveUserStreamService init keep alive user stream service
-func (c *Client) NewKeepaliveUserStreamService() *KeepaliveUserStreamService {
-	return &KeepaliveUserStreamService{c: c}
-}
-
-// NewCloseUserStreamService init closing user stream service
-func (c *Client) NewCloseUserStreamService() *CloseUserStreamService {
-	return &CloseUserStreamService{c: c}
-}
-
-// NewExchangeInfoService init exchange info service
-func (c *Client) NewExchangeInfoService() *ExchangeInfoService {
-	return &ExchangeInfoService{c: c}
-}
-
-// NewPremiumIndexService init premium index service
-func (c *Client) NewPremiumIndexService() *PremiumIndexService {
-	return &PremiumIndexService{c: c}
-}
-
-// NewFundingRateService init funding rate service
-func (c *Client) NewFundingRateService() *FundingRateService {
-	return &FundingRateService{c: c}
-}
-
 // NewListLiquidationOrdersService init funding rate service
 func (c *Client) NewListLiquidationOrdersService() *ListLiquidationOrdersService {
 	return &ListLiquidationOrdersService{c: c}
 }
 
-// NewChangeLeverageService init change leverage service
-func (c *Client) NewChangeLeverageService() *ChangeLeverageService {
-	return &ChangeLeverageService{c: c}
-}
-
-// NewGetLeverageBracketService init change leverage service
-func (c *Client) NewGetLeverageBracketService() *GetLeverageBracketService {
-	return &GetLeverageBracketService{c: c}
-}
-
-// NewChangeMarginTypeService init change margin type service
-func (c *Client) NewChangeMarginTypeService() *ChangeMarginTypeService {
-	return &ChangeMarginTypeService{c: c}
-}
-
-// NewUpdatePositionMarginService init update position margin
-func (c *Client) NewUpdatePositionMarginService() *UpdatePositionMarginService {
-	return &UpdatePositionMarginService{c: c}
-}
-
-// NewChangePositionModeService init change position mode service
-func (c *Client) NewChangePositionModeService() *ChangePositionModeService {
-	return &ChangePositionModeService{c: c}
-}
-
-// NewGetPositionModeService init get position mode service
-func (c *Client) NewGetPositionModeService() *GetPositionModeService {
-	return &GetPositionModeService{c: c}
+// NewGetPositionRiskService init getting position risk service
+func (c *Client) NewGetPositionRiskService() *GetPositionRiskService {
+	return &GetPositionRiskService{c: c}
 }

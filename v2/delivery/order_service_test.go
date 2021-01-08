@@ -1,4 +1,4 @@
-package futures
+package delivery
 
 import (
 	"testing"
@@ -21,89 +21,103 @@ func TestOrderService(t *testing.T) {
 func (s *orderServiceTestSuite) TestCreateOrder() {
 	data := []byte(`{
 		"clientOrderId": "testOrder",
-		"cumQuote": "0",
+		"cumQty": "0",
+		"cumBase": "0",
 		"executedQty": "0",
 		"orderId": 22542179,
+		"avgPrice": "0.0",
 		"origQty": "10",
-		"price": "10000",
+		"price": "0",
 		"reduceOnly": false,
-		"side": "SELL",
+		"side": "BUY",
+		"positionSide": "SHORT", 
 		"status": "NEW",
-		"stopPrice": "0",
-		"symbol": "BTCUSDT",
+		"stopPrice": "9300",
+		"closePosition": false,
+		"symbol": "BTCUSD_200925",
+		"pair": "BTCUSD",
 		"timeInForce": "GTC",
-		"type": "LIMIT",
+		"type": "TRAILING_STOP_MARKET",
+		"origType": "TRAILING_STOP_MARKET",
+		"activatePrice": "9020",
+		"priceRate": "0.3",
 		"updateTime": 1566818724722,
 		"workingType": "CONTRACT_PRICE",
-		"activatePrice": "1000",
-		"priceRate": "0.1",
-		"positionSide": "BOTH",
-		"closePosition": false
+		"priceProtect": false
 	}`)
 	s.mockDo(data, nil)
 	defer s.assertDo()
-	symbol := "BTCUSDT"
-	side := SideTypeSell
-	orderType := OrderTypeLimit
+	symbol := "BTCUSD_200925"
+	side := SideTypeBuy
+	positionSide := PositionSideTypeShort
+	orderType := OrderTypeTrailingStopMarket
 	timeInForce := TimeInForceTypeGTC
-	positionSide := PositionSideTypeBoth
 	quantity := "10"
-	price := "10000"
-	newClientOrderID := "testOrder"
 	reduceOnly := false
-	stopPrice := "0"
-	activationPrice := "1000"
-	callbackRate := "0.1"
-	workingType := WorkingTypeContractPrice
-	newOrderResponseType := NewOrderRespTypeRESULT
+	price := "0"
+	newClientOrderID := "testOrder"
+	stopPrice := "9300"
 	closePosition := false
+	activationPrice := "9020"
+	callbackRate := "0.3"
+	workingType := WorkingTypeContractPrice
+	priceProtect := false
+	newOrderResponseType := NewOrderRespTypeRESULT
 	s.assertReq(func(r *request) {
 		e := newSignedRequest().setFormParams(params{
 			"symbol":           symbol,
 			"side":             side,
+			"positionSide":     positionSide,
 			"type":             orderType,
 			"timeInForce":      timeInForce,
-			"positionSide":     positionSide,
 			"quantity":         quantity,
 			"reduceOnly":       reduceOnly,
 			"price":            price,
 			"newClientOrderId": newClientOrderID,
 			"stopPrice":        stopPrice,
-			"workingType":      workingType,
+			"closePosition":    closePosition,
 			"activationPrice":  activationPrice,
 			"callbackRate":     callbackRate,
+			"workingType":      workingType,
+			"priceProtect":     priceProtect,
 			"newOrderRespType": newOrderResponseType,
-			"closePosition":    closePosition,
 		})
 		s.assertRequestEqual(e, r)
 	})
-	res, err := s.client.NewCreateOrderService().Symbol(symbol).Side(side).
-		Type(orderType).TimeInForce(timeInForce).Quantity(quantity).ClosePosition(closePosition).
-		ReduceOnly(reduceOnly).Price(price).NewClientOrderID(newClientOrderID).
-		StopPrice(stopPrice).WorkingType(workingType).ActivationPrice(activationPrice).
-		CallbackRate(callbackRate).PositionSide(positionSide).NewOrderResponseType(newOrderResponseType).
+	res, err := s.client.NewCreateOrderService().
+		Symbol(symbol).Side(side).Type(orderType).TimeInForce(timeInForce).
+		Quantity(quantity).ClosePosition(closePosition).ReduceOnly(reduceOnly).
+		Price(price).NewClientOrderID(newClientOrderID).StopPrice(stopPrice).
+		WorkingType(workingType).ActivationPrice(activationPrice).
+		CallbackRate(callbackRate).PositionSide(positionSide).
+		PriceProtect(priceProtect).NewOrderResponseType(newOrderResponseType).
 		Do(newContext())
 	s.r().NoError(err)
 	e := &CreateOrderResponse{
 		ClientOrderID:    newClientOrderID,
-		CumQuote:         "0",
+		CumQuantity:      "0",
+		CumBase:          "0",
 		ExecutedQuantity: "0",
 		OrderID:          22542179,
+		AvgPrice:         "0.0",
 		OrigQuantity:     "10",
-		PositionSide:     positionSide,
-		Price:            "10000",
+		Price:            "0",
 		ReduceOnly:       false,
-		Side:             SideTypeSell,
+		Side:             SideTypeBuy,
+		PositionSide:     positionSide,
 		Status:           OrderStatusTypeNew,
-		StopPrice:        "0",
+		StopPrice:        stopPrice,
+		ClosePosition:    false,
 		Symbol:           symbol,
+		Pair:             "BTCUSD",
 		TimeInForce:      TimeInForceTypeGTC,
-		Type:             OrderTypeLimit,
-		UpdateTime:       1566818724722,
-		WorkingType:      WorkingTypeContractPrice,
+		Type:             OrderTypeTrailingStopMarket,
+		OrigType:         OrderTypeTrailingStopMarket,
 		ActivatePrice:    activationPrice,
 		PriceRate:        callbackRate,
-		ClosePosition:    false,
+		UpdateTime:       1566818724722,
+		PriceProtect:     priceProtect,
+		WorkingType:      WorkingTypeContractPrice,
 	}
 	s.assertCreateOrderResponseEqual(e, res)
 }
@@ -111,7 +125,12 @@ func (s *orderServiceTestSuite) TestCreateOrder() {
 func (s *baseOrderTestSuite) assertCreateOrderResponseEqual(e, a *CreateOrderResponse) {
 	r := s.r()
 	r.Equal(e.ClientOrderID, a.ClientOrderID, "ClientOrderID")
-	r.Equal(e.CumQuote, a.CumQuote, "CumQuote")
+	r.Equal(e.CumQuantity, a.CumQuantity, "CumQuantity")
+	r.Equal(e.CumBase, a.CumBase, "CumBase")
+	r.Equal(e.AvgPrice, a.AvgPrice, "AvgPrice")
+	r.Equal(e.Pair, a.Pair, "Pair")
+	r.Equal(e.OrigType, a.OrigType, "OrigType")
+	r.Equal(e.PriceProtect, a.PriceProtect, "PriceProtect")
 	r.Equal(e.ExecutedQuantity, a.ExecutedQuantity, "ExecutedQuantity")
 	r.Equal(e.OrderID, a.OrderID, "OrderID")
 	r.Equal(e.OrigQuantity, a.OrigQuantity, "OrigQuantity")
@@ -134,31 +153,35 @@ func (s *baseOrderTestSuite) assertCreateOrderResponseEqual(e, a *CreateOrderRes
 func (s *orderServiceTestSuite) TestListOpenOrders() {
 	data := []byte(`[
 		{
-		  "symbol": "BTCUSDT",
-		  "orderId": 1,
-		  "clientOrderId": "myOrder1",
-		  "price": "0.1",
-		  "reduceOnly": false,
-		  "origQty": "1.0",
-		  "cumQty": "1.0",
-		  "cumQuote": "1.0",
-		  "status": "NEW",
-		  "timeInForce": "GTC",
-		  "type": "LIMIT",
-		  "side": "BUY",
-		  "stopPrice": "0.0",
-		  "time": 1499827319559,
-		  "updateTime": 1499827319559,
-		  "workingType": "CONTRACT_PRICE",
-		  "activatePrice": "10000",
-		  "priceRate":"0.1",
-		  "positionSide":"BOTH"
+			"avgPrice": "0.0",
+			"clientOrderId": "abc",
+			"cumBase": "0",
+			"executedQty": "0",
+			"orderId": 1917641,
+			"origQty": "0.40",
+			"origType": "TRAILING_STOP_MARKET",
+			"price": "0",
+			"reduceOnly": false,
+			"side": "BUY",
+			"positionSide": "SHORT",
+			"status": "NEW",
+			"stopPrice": "9300",
+			"closePosition": false,
+			"symbol": "BTCUSD_200925",
+			"time": 1579276756075,
+			"timeInForce": "GTC",
+			"type": "TRAILING_STOP_MARKET",
+			"activatePrice": "9020",
+			"priceRate": "0.3",
+			"updateTime": 1579276756075,
+			"workingType": "CONTRACT_PRICE",
+			"priceProtect": false
 		}
 	]`)
 	s.mockDo(data, nil)
 	defer s.assertDo()
 
-	symbol := "BTCUSDT"
+	symbol := "BTCUSD_200925"
 	recvWindow := int64(1000)
 	s.assertReq(func(r *request) {
 		e := newSignedRequest().setParams(params{
@@ -173,81 +196,92 @@ func (s *orderServiceTestSuite) TestListOpenOrders() {
 	r.NoError(err)
 	r.Len(orders, 1)
 	e := &Order{
-		Symbol:        symbol,
-		OrderID:       1,
-		ClientOrderID: "myOrder1",
-		Price:         "0.1",
-		ReduceOnly:    false,
-		OrigQuantity:  "1.0",
-		CumQuantity:   "1.0",
-		CumQuote:      "1.0",
-		Status:        OrderStatusTypeNew,
-		TimeInForce:   TimeInForceTypeGTC,
-		Type:          OrderTypeLimit,
-		Side:          SideTypeBuy,
-		StopPrice:     "0.0",
-		Time:          1499827319559,
-		UpdateTime:    1499827319559,
-		WorkingType:   WorkingTypeContractPrice,
-		ActivatePrice: "10000",
-		PriceRate:     "0.1",
-		PositionSide:  "BOTH",
+		AvgPrice:         "0.0",
+		ClientOrderID:    "abc",
+		CumBase:          "0",
+		ExecutedQuantity: "0",
+		OrderID:          1917641,
+		OrigQuantity:     "0.40",
+		OrigType:         OrderTypeTrailingStopMarket,
+		Price:            "0",
+		ReduceOnly:       false,
+		Side:             SideTypeBuy,
+		PositionSide:     PositionSideTypeShort,
+		Status:           OrderStatusTypeNew,
+		StopPrice:        "9300",
+		ClosePosition:    false,
+		Symbol:           symbol,
+		Time:             1579276756075,
+		TimeInForce:      TimeInForceTypeGTC,
+		Type:             OrderTypeTrailingStopMarket,
+		ActivatePrice:    "9020",
+		PriceRate:        "0.3",
+		UpdateTime:       1579276756075,
+		WorkingType:      WorkingTypeContractPrice,
 	}
 	s.assertOrderEqual(e, orders[0])
 }
 
 func (s *baseOrderTestSuite) assertOrderEqual(e, a *Order) {
 	r := s.r()
-	r.Equal(e.Symbol, a.Symbol, "Symbol")
-	r.Equal(e.OrderID, a.OrderID, "OrderID")
+	r.Equal(e.AvgPrice, a.AvgPrice, "AvgPrice")
 	r.Equal(e.ClientOrderID, a.ClientOrderID, "ClientOrderID")
+	r.Equal(e.CumBase, a.CumBase, "CumBase")
+	r.Equal(e.ExecutedQuantity, a.ExecutedQuantity, "ExecutedQuantity")
+	r.Equal(e.OrderID, a.OrderID, "OrderID")
+	r.Equal(e.OrigQuantity, a.OrigQuantity, "OrigQuantity")
+	r.Equal(e.OrigType, a.OrigType, "OrigType")
 	r.Equal(e.Price, a.Price, "Price")
 	r.Equal(e.ReduceOnly, a.ReduceOnly, "ReduceOnly")
-	r.Equal(e.OrigQuantity, a.OrigQuantity, "OrigQuantity")
-	r.Equal(e.ExecutedQuantity, a.ExecutedQuantity, "ExecutedQuantity")
-	r.Equal(e.CumQuantity, a.CumQuantity, "CumQuantity")
-	r.Equal(e.CumQuote, a.CumQuote, "CumQuote")
+	r.Equal(e.Side, a.Side, "Side")
+	r.Equal(e.PositionSide, a.PositionSide, "PositionSide")
 	r.Equal(e.Status, a.Status, "Status")
+	r.Equal(e.StopPrice, a.StopPrice, "StopPrice")
+	r.Equal(e.ClosePosition, a.ClosePosition, "ClosePosition")
+	r.Equal(e.Symbol, a.Symbol, "Symbol")
+	r.Equal(e.Pair, a.Pair, "Pair")
+	r.Equal(e.Time, a.Time, "Time")
 	r.Equal(e.TimeInForce, a.TimeInForce, "TimeInForce")
 	r.Equal(e.Type, a.Type, "Type")
-	r.Equal(e.Side, a.Side, "Side")
-	r.Equal(e.StopPrice, a.StopPrice, "StopPrice")
-	r.Equal(e.Time, e.Time, "Time")
-	r.Equal(e.UpdateTime, a.UpdateTime, "UpdateTime")
-	r.Equal(e.WorkingType, a.WorkingType, "WorkingType")
 	r.Equal(e.ActivatePrice, a.ActivatePrice, "ActivatePrice")
 	r.Equal(e.PriceRate, a.PriceRate, "PriceRate")
-	r.Equal(e.PositionSide, a.PositionSide, "PositionSide")
+	r.Equal(e.UpdateTime, a.UpdateTime, "UpdateTime")
+	r.Equal(e.WorkingType, a.WorkingType, "WorkingType")
+	r.Equal(e.PriceProtect, a.PriceProtect, "PriceProtect")
 }
 
 func (s *orderServiceTestSuite) TestGetOrder() {
 	data := []byte(`{
-		"symbol": "BTCUSDT",
-		"orderId": 1,
-		"clientOrderId": "myOrder1",
-		"price": "0.1",
+		"avgPrice": "0.0",
+		"clientOrderId": "abc",
+		"cumBase": "0",
+		"executedQty": "0",
+		"orderId": 1917641,
+		"origQty": "0.40",
+		"origType": "TRAILING_STOP_MARKET",
+		"price": "0",
 		"reduceOnly": false,
-		"origQty": "1.0",
-		"executedQty": "0.0",
-		"cumQuote": "0.0",
-		"status": "NEW",
-		"timeInForce": "GTC",
-		"type": "LIMIT",
 		"side": "BUY",
-		"stopPrice": "0.0",
-		"time": 1499827319559,
-		"updateTime": 1499827319559,
+		"status": "NEW",
+		"stopPrice": "9300",
+		"closePosition": false,
+		"symbol": "BTCUSD_200925",
+		"pair": "BTCUSD",
+		"time": 1579276756075,
+		"timeInForce": "GTC",
+		"type": "TRAILING_STOP_MARKET",
+		"activatePrice": "9020",
+		"priceRate": "0.3",
+		"updateTime": 1579276756075,
 		"workingType": "CONTRACT_PRICE",
-		"activatePrice": "10000",
-		"priceRate":"0.1",
-		"positionSide": "BOTH"
+		"priceProtect": false
 	}`)
 	s.mockDo(data, nil)
 	defer s.assertDo()
 
-	symbol := "BTCUSDT"
-	orderID := int64(1)
-	origClientOrderID := "myOrder1"
+	symbol := "BTCUSD_200925"
+	orderID := int64(1917641)
+	origClientOrderID := "abc"
 	s.assertReq(func(r *request) {
 		e := newSignedRequest().setParams(params{
 			"symbol":            symbol,
@@ -261,25 +295,29 @@ func (s *orderServiceTestSuite) TestGetOrder() {
 	r := s.r()
 	r.NoError(err)
 	e := &Order{
-		Symbol:           symbol,
-		OrderID:          1,
-		ClientOrderID:    origClientOrderID,
-		Price:            "0.1",
+		AvgPrice:         "0.0",
+		ClientOrderID:    "abc",
+		CumBase:          "0",
+		ExecutedQuantity: "0",
+		OrderID:          1917641,
+		OrigQuantity:     "0.40",
+		OrigType:         OrderTypeTrailingStopMarket,
+		Price:            "0",
 		ReduceOnly:       false,
-		OrigQuantity:     "1.0",
-		ExecutedQuantity: "0.0",
-		CumQuote:         "0.0",
-		Status:           OrderStatusTypeNew,
-		TimeInForce:      TimeInForceTypeGTC,
-		Type:             OrderTypeLimit,
 		Side:             SideTypeBuy,
-		StopPrice:        "0.0",
-		Time:             1499827319559,
-		UpdateTime:       1499827319559,
+		Status:           OrderStatusTypeNew,
+		StopPrice:        "9300",
+		ClosePosition:    false,
+		Symbol:           "BTCUSD_200925",
+		Pair:             "BTCUSD",
+		Time:             1579276756075,
+		TimeInForce:      TimeInForceTypeGTC,
+		Type:             OrderTypeTrailingStopMarket,
+		ActivatePrice:    "9020",
+		PriceRate:        "0.3",
+		UpdateTime:       1579276756075,
 		WorkingType:      WorkingTypeContractPrice,
-		ActivatePrice:    "10000",
-		PriceRate:        "0.1",
-		PositionSide:     "BOTH",
+		PriceProtect:     false,
 	}
 	s.assertOrderEqual(e, order)
 }
@@ -287,30 +325,36 @@ func (s *orderServiceTestSuite) TestGetOrder() {
 func (s *orderServiceTestSuite) TestListOrders() {
 	data := []byte(`[
 		{
-		  "symbol": "BTCUSDT",
-		  "orderId": 1,
-		  "clientOrderId": "myOrder1",
-		  "price": "0.1",
-		  "reduceOnly": false,
-		  "origQty": "1.0",
-		  "executedQty": "1.0",
-		  "cumQuote": "10.0",
-		  "status": "NEW",
-		  "timeInForce": "GTC",
-		  "type": "LIMIT",
-		  "side": "BUY",
-		  "stopPrice": "0.0",
-		  "time": 1499827319559,
-		  "updateTime": 1499827319559,
-		  "workingType": "CONTRACT_PRICE",
-		  "activatePrice": "10000",
-		  "priceRate":"0.1"
+			"avgPrice": "0.0",
+			"clientOrderId": "abc",
+			"cumBase": "0",
+			"executedQty": "0",
+			"orderId": 1917641,
+			"origQty": "0.40",
+			"origType": "TRAILING_STOP_MARKET",
+			"price": "0",
+			"reduceOnly": false,
+			"side": "BUY",
+			"positionSide": "SHORT",
+			"status": "NEW",
+			"stopPrice": "9300",
+			"closePosition": false,
+			"symbol": "BTCUSD_200925",
+			"pair": "BTCUSD",
+			"time": 1579276756075,
+			"timeInForce": "GTC",
+			"type": "TRAILING_STOP_MARKET",
+			"activatePrice": "9020",
+			"priceRate": "0.3",
+			"updateTime": 1579276756075,
+			"workingType": "CONTRACT_PRICE",
+			"priceProtect": false
 		}
 	  ]`)
 	s.mockDo(data, nil)
 	defer s.assertDo()
-	symbol := "BTCUSDT"
-	orderID := int64(1)
+	symbol := "BTCUSD_200925"
+	orderID := int64(1917641)
 	limit := 3
 	startTime := int64(1499827319559)
 	endTime := int64(1499827319560)
@@ -332,55 +376,66 @@ func (s *orderServiceTestSuite) TestListOrders() {
 	r.NoError(err)
 	r.Len(orders, 1)
 	e := &Order{
-		Symbol:           symbol,
-		OrderID:          1,
-		ClientOrderID:    "myOrder1",
-		Price:            "0.1",
+		AvgPrice:         "0.0",
+		ClientOrderID:    "abc",
+		CumBase:          "0",
+		ExecutedQuantity: "0",
+		OrderID:          1917641,
+		OrigQuantity:     "0.40",
+		OrigType:         OrderTypeTrailingStopMarket,
+		Price:            "0",
 		ReduceOnly:       false,
-		OrigQuantity:     "1.0",
-		ExecutedQuantity: "1.0",
-		CumQuote:         "10.0",
-		Status:           OrderStatusTypeNew,
-		TimeInForce:      TimeInForceTypeGTC,
-		Type:             OrderTypeLimit,
 		Side:             SideTypeBuy,
-		StopPrice:        "0.0",
-		Time:             1499827319559,
-		UpdateTime:       1499827319559,
+		PositionSide:     PositionSideTypeShort,
+		Status:           OrderStatusTypeNew,
+		StopPrice:        "9300",
+		ClosePosition:    false,
+		Symbol:           "BTCUSD_200925",
+		Pair:             "BTCUSD",
+		Time:             1579276756075,
+		TimeInForce:      TimeInForceTypeGTC,
+		Type:             OrderTypeTrailingStopMarket,
+		ActivatePrice:    "9020",
+		PriceRate:        "0.3",
+		UpdateTime:       1579276756075,
 		WorkingType:      WorkingTypeContractPrice,
-		ActivatePrice:    "10000",
-		PriceRate:        "0.1",
+		PriceProtect:     false,
 	}
 	s.assertOrderEqual(e, orders[0])
 }
 
 func (s *orderServiceTestSuite) TestCancelOrder() {
 	data := []byte(`{
+		"avgPrice": "0.0",
 		"clientOrderId": "myOrder1",
 		"cumQty": "0",
-		"cumQuote": "0",
+		"cumBase": "0",
 		"executedQty": "0",
 		"orderId": 283194212,
 		"origQty": "11",
-		"price": "8301",
+		"origType": "TRAILING_STOP_MARKET",
+		"price": "0",
 		"reduceOnly": false,
 		"side": "BUY",
+		"positionSide": "SHORT",            
 		"status": "CANCELED",
-		"stopPrice": "8300",
-		"symbol": "BTCUSDT",
+		"stopPrice": "9300",
+		"closePosition": false,
+		"symbol": "BTCUSD_200925",
+		"pair": "BTCUSD",
 		"timeInForce": "GTC",
-		"type": "TAKE_PROFIT",
+		"type": "TRAILING_STOP_MARKET",
+		"activatePrice": "9020",
+		"priceRate": "0.3",
 		"updateTime": 1571110484038,
 		"workingType": "CONTRACT_PRICE",
-		"activatePrice": "10000",
-		"priceRate":"0.1",
-		"positionSide":"BOTH"
+		"priceProtect": false
 	}`)
 	s.mockDo(data, nil)
 	defer s.assertDo()
 
-	symbol := "BTCUSDT"
-	orderID := int64(28)
+	symbol := "BTCUSD_200925"
+	orderID := int64(283194212)
 	origClientOrderID := "myOrder1"
 	s.assertReq(func(r *request) {
 		e := newSignedRequest().setFormParams(params{
@@ -397,50 +452,60 @@ func (s *orderServiceTestSuite) TestCancelOrder() {
 	r := s.r()
 	r.NoError(err)
 	e := &CancelOrderResponse{
-		ClientOrderID:    origClientOrderID,
+		AvgPrice:         "0.0",
+		ClientOrderID:    "myOrder1",
 		CumQuantity:      "0",
-		CumQuote:         "0",
+		CumBase:          "0",
 		ExecutedQuantity: "0",
 		OrderID:          283194212,
 		OrigQuantity:     "11",
-		Price:            "8301",
+		OrigType:         OrderTypeTrailingStopMarket,
+		Price:            "0",
 		ReduceOnly:       false,
 		Side:             SideTypeBuy,
+		PositionSide:     PositionSideTypeShort,
 		Status:           OrderStatusTypeCanceled,
-		StopPrice:        "8300",
-		Symbol:           symbol,
+		StopPrice:        "9300",
+		ClosePosition:    false,
+		Symbol:           "BTCUSD_200925",
+		Pair:             "BTCUSD",
 		TimeInForce:      TimeInForceTypeGTC,
-		Type:             OrderTypeTakeProfit,
+		Type:             OrderTypeTrailingStopMarket,
+		ActivatePrice:    "9020",
+		PriceRate:        "0.3",
 		UpdateTime:       1571110484038,
 		WorkingType:      WorkingTypeContractPrice,
-		ActivatePrice:    "10000",
-		PriceRate:        "0.1",
-		PositionSide:     "BOTH",
+		PriceProtect:     false,
 	}
 	s.assertCancelOrderResponseEqual(e, res)
 }
 
 func (s *orderServiceTestSuite) assertCancelOrderResponseEqual(e, a *CancelOrderResponse) {
 	r := s.r()
+	r.Equal(e.AvgPrice, a.AvgPrice, "AvgPrice")
 	r.Equal(e.ClientOrderID, a.ClientOrderID, "ClientOrderID")
 	r.Equal(e.CumQuantity, a.CumQuantity, "CumQuantity")
-	r.Equal(e.CumQuote, a.CumQuote, "CumQuote")
+	r.Equal(e.CumBase, a.CumBase, "CumBase")
 	r.Equal(e.ExecutedQuantity, a.ExecutedQuantity, "ExecutedQuantity")
 	r.Equal(e.OrderID, a.OrderID, "OrderID")
 	r.Equal(e.OrigQuantity, a.OrigQuantity, "OrigQuantity")
+	r.Equal(e.OrigType, a.OrigType, "OrigType")
 	r.Equal(e.Price, a.Price, "Price")
 	r.Equal(e.ReduceOnly, a.ReduceOnly, "ReduceOnly")
 	r.Equal(e.Side, a.Side, "Side")
+	r.Equal(e.PositionSide, a.PositionSide, "PositionSide")
 	r.Equal(e.Status, a.Status, "Status")
 	r.Equal(e.StopPrice, a.StopPrice, "StopPrice")
+	r.Equal(e.ClosePosition, a.ClosePosition, "ClosePosition")
 	r.Equal(e.Symbol, a.Symbol, "Symbol")
+	r.Equal(e.Pair, a.Pair, "Pair")
 	r.Equal(e.TimeInForce, a.TimeInForce, "TimeInForce")
 	r.Equal(e.Type, a.Type, "Type")
-	r.Equal(e.UpdateTime, a.UpdateTime, "UpdateTime")
-	r.Equal(e.WorkingType, a.WorkingType, "WorkingType")
 	r.Equal(e.ActivatePrice, a.ActivatePrice, "ActivatePrice")
 	r.Equal(e.PriceRate, a.PriceRate, "PriceRate")
-	r.Equal(e.PositionSide, a.PositionSide, "PositionSide")
+	r.Equal(e.UpdateTime, a.UpdateTime, "UpdateTime")
+	r.Equal(e.WorkingType, a.WorkingType, "WorkingType")
+	r.Equal(e.PriceProtect, a.PriceProtect, "PriceProtect")
 }
 
 func (s *orderServiceTestSuite) TestCancelAllOpenOrders() {
@@ -467,22 +532,22 @@ func (s *orderServiceTestSuite) TestCancelAllOpenOrders() {
 func (s *orderServiceTestSuite) TestListLiquidationOrders() {
 	data := []byte(`[
 		{
-			  "symbol": "BTCUSDT",
-			  "price": "7918.33",
-			  "origQty": "0.014",
-			  "executedQty": "0.014",
-			  "avragePrice": "7918.33",
-			  "status": "FILLED",
-			  "timeInForce": "IOC",
-			  "type": "LIMIT",
-			  "side": "SELL",
-			  "time": 1568014460893
+			"symbol": "BTCUSD_200925",
+			"price": "9425.5",
+			"origQty": "1",
+			"executedQty": "1",
+			"avragePrice": "9496.5",
+			"status": "FILLED",
+			"timeInForce": "IOC",
+			"type": "LIMIT",
+			"side": "SELL",
+			"time": 1591154240949
 		}
 	]`)
 	s.mockDo(data, nil)
 	defer s.assertDo()
 
-	symbol := "BTCUSDT"
+	symbol := "BTCUSD_200925"
 	startTime := int64(1568014460893)
 	endTime := int64(1568014460894)
 	limit := 1
@@ -503,14 +568,15 @@ func (s *orderServiceTestSuite) TestListLiquidationOrders() {
 	e := []*LiquidationOrder{
 		{
 			Symbol:           symbol,
-			Price:            "7918.33",
-			OrigQuantity:     "0.014",
-			ExecutedQuantity: "0.014",
-			AveragePrice:     "7918.33",
+			Price:            "9425.5",
+			OrigQuantity:     "1",
+			ExecutedQuantity: "1",
+			AveragePrice:     "9496.5",
 			Status:           OrderStatusTypeFilled,
 			TimeInForce:      TimeInForceTypeIOC,
 			Type:             OrderTypeLimit,
 			Side:             SideTypeSell,
+			Time:             1591154240949,
 		},
 	}
 	s.r().Len(res, len(e))
@@ -530,4 +596,5 @@ func (s *orderServiceTestSuite) assertLiquidationEqual(e, a *LiquidationOrder) {
 	r.Equal(e.TimeInForce, a.TimeInForce, "TimeInForce")
 	r.Equal(e.Type, a.Type, "Type")
 	r.Equal(e.Side, a.Side, "Side")
+	r.Equal(e.Time, a.Time, "Time")
 }
